@@ -11,7 +11,11 @@ fn main() {
         .ok()
         .and_then(|path| path.parent().map(|parent| parent.join("yt-dlp.exe")))
         .filter(|path| path.exists());
-    match transcript::fetch(&url, yt_dlp.as_deref()) {
+    let deno = env::current_exe()
+        .ok()
+        .and_then(|path| path.parent().map(|parent| parent.join("deno.exe")))
+        .filter(|path| path.exists());
+    match transcript::fetch(&url, yt_dlp.as_deref(), deno.as_deref()) {
         Ok(text) => println!("{text}"),
         Err(error) => {
             eprintln!("Error: {error}");

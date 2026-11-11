@@ -162,10 +162,13 @@ unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, 
                 EnableWindow(GetDlgItem(hwnd, IDC_FETCH), 0);
                 set_text(GetDlgItem(hwnd, IDC_STATUS), "Obteniendo transcripción…");
                 let window = hwnd as isize;
-                let yt_dlp = std::env::current_exe().ok().and_then(|path| path.parent().map(|p| p.join("yt-dlp.exe")));
+                let app_dir = std::env::current_exe().ok().and_then(|path| path.parent().map(|p| p.to_path_buf()));
+                let yt_dlp = app_dir.as_ref().map(|dir| dir.join("yt-dlp.exe"));
+                let deno = app_dir.as_ref().map(|dir| dir.join("deno.exe"));
                 thread::spawn(move || {
                     let executable = yt_dlp.filter(|path| path.exists());
-                    let result = transcript::fetch(&url, executable.as_deref());
+                    let runtime = deno.filter(|path| path.exists());
+                    let result = transcript::fetch(&url, executable.as_deref(), runtime.as_deref());
                     let payload = Box::into_raw(Box::new(result));
                     unsafe { PostMessageW(window as Hwnd, WM_APP_RESULT, 0, payload as Lparam); }
                 });

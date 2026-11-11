@@ -5,6 +5,9 @@ $rustupHome = Join-Path $toolsDir 'rustup'
 $cargoHome = Join-Path $toolsDir 'cargo'
 $rustupInit = Join-Path $toolsDir 'rustup-init.exe'
 $ytDlp = Join-Path $toolsDir 'yt-dlp.exe'
+$denoDir = Join-Path $toolsDir 'deno'
+$deno = Join-Path $denoDir 'deno.exe'
+$denoZip = Join-Path $toolsDir 'deno-windows-x64.zip'
 
 New-Item -ItemType Directory -Force -Path $toolsDir | Out-Null
 
@@ -36,6 +39,14 @@ if (-not ($installedToolchains -match '^stable-x86_64-pc-windows-gnu')) {
 if (-not (Test-Path $ytDlp)) {
     Write-Host 'Descargando yt-dlp en .tools...'
     Invoke-WebRequest 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' -OutFile $ytDlp
+}
+
+if (-not (Test-Path $deno)) {
+    Write-Host 'Descargando Deno en .tools...'
+    New-Item -ItemType Directory -Force -Path $denoDir | Out-Null
+    Invoke-WebRequest 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip' -OutFile $denoZip
+    Expand-Archive -LiteralPath $denoZip -DestinationPath $denoDir -Force
+    if (-not (Test-Path $deno)) { throw 'No se encontró deno.exe dentro del paquete descargado.' }
 }
 
 Write-Host 'Herramientas locales listas en .tools.'

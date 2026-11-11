@@ -6,9 +6,9 @@ Aplicación de escritorio para Windows que obtiene transcripciones disponibles d
 
 - Windows 10/11 de 64 bits y PowerShell.
 - Conexión a Internet durante la configuración inicial.
-- GCC para Windows (MinGW-w64) disponible como comando `gcc`. El proyecto incluye un entorno local de Rust; `yt-dlp` también se instala dentro del proyecto.
+- GCC para Windows (MinGW-w64) disponible como comando `gcc`.
 
-La configuración no modifica el `PATH` ni instala Rust o `yt-dlp` en el perfil del usuario. Ambos quedan bajo `.tools/`, que Git ignora. Rustup usa `rsproxy.cn` como espejo de descarga del toolchain.
+No necesitas tener Node ni Deno instalados. La configuración descarga Rust, `yt-dlp` y Deno dentro de `.tools/`; no modifica el `PATH` ni instala herramientas globalmente. Rustup usa `rsproxy.cn` como espejo de descarga del toolchain.
 
 ## Configurar
 
@@ -18,7 +18,7 @@ Abre PowerShell en la carpeta del proyecto y ejecuta:
 .\setup.ps1
 ```
 
-El script descarga Rust (toolchain GNU) y `yt-dlp` en `.tools/`. Se puede volver a ejecutar para completar una instalación interrumpida.
+El script descarga Rust (toolchain GNU), `yt-dlp` y Deno para Windows x64 en `.tools/`. Se puede volver a ejecutar para completar una instalación interrumpida.
 
 ## Compilar
 
@@ -26,7 +26,7 @@ El script descarga Rust (toolchain GNU) y `yt-dlp` en `.tools/`. Se puede volver
 .\build.ps1
 ```
 
-La aplicación de escritorio y la herramienta de consola se crean en `target\release`. El script coloca `yt-dlp.exe` junto a ellas para que la aplicación pueda ejecutarse desde esa carpeta.
+La aplicación de escritorio y la herramienta de consola se crean en `target\release`. El script coloca `yt-dlp.exe` y `deno.exe` junto a ellas; distribuye los tres ejecutables juntos.
 
 Abre la aplicación haciendo doble clic en:
 
@@ -54,9 +54,15 @@ También se puede compilar y ejecutar en un paso:
 
 El programa busca subtítulos publicados o automáticos. Si el video no ofrece subtítulos, no puede generar una transcripción. Se usa el primer archivo de subtítulos que `yt-dlp` entrega; el texto se imprime sin tiempos ni etiquetas de formato. La disponibilidad y las condiciones de acceso dependen de YouTube y del video.
 
+## Solución de problemas
+
+- Si falta `deno.exe` o `yt-dlp.exe`, vuelve a ejecutar `.\setup.ps1` y después `.\build.ps1`.
+- Si la configuración no puede descargar las herramientas, comprueba que haya conexión a Internet y vuelve a ejecutar `.\setup.ps1`. Los archivos se guardan dentro de `.tools/`.
+- Si `yt-dlp` informa que el video no ofrece subtítulos, prueba otro video que tenga subtítulos disponibles; el programa no genera transcripciones por sí mismo.
+
 ## Archivos locales
 
-- `.tools/`: Rust, `yt-dlp` y sus archivos de configuración locales.
+- `.tools/`: Rust, `yt-dlp`, Deno y sus archivos locales.
 - `target/`: ejecutables y archivos de compilación de Cargo.
 
 Ambas carpetas están excluidas de Git. `Cargo.lock` se conserva para registrar las versiones exactas de las dependencias Rust.

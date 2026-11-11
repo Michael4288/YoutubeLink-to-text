@@ -5,7 +5,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-pub fn fetch(url: &str, yt_dlp: Option<&Path>) -> Result<String, String> {
+pub fn fetch(url: &str, yt_dlp: Option<&Path>, deno: Option<&Path>) -> Result<String, String> {
     if !(url.contains("youtube.com/") || url.contains("youtu.be/")) {
         return Err("El enlace no parece ser de YouTube.".into());
     }
@@ -18,8 +18,14 @@ pub fn fetch(url: &str, yt_dlp: Option<&Path>) -> Result<String, String> {
     fs::create_dir_all(&dir).map_err(|e| format!("No pude crear carpeta temporal: {e}"))?;
     let template = dir.join("sub.%(ext)s");
     let executable = yt_dlp.map(Path::to_path_buf).unwrap_or_else(|| PathBuf::from("yt-dlp"));
+    let Some(deno) = deno else {
+        let _ = fs::remove_dir_all(&dir);
+        return Err("No encuentro Deno junto a la aplicación. Vuelve a ejecutar setup.ps1 y build.ps1.".into());
+    };
 
     let result = Command::new(executable)
+        .arg("--js-runtimes")
+        .arg(format!("deno:{}", deno.display()))
         .args([
             "--skip-download",
             "--write-subs",

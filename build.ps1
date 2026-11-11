@@ -11,7 +11,7 @@ $rustupHome = Join-Path $toolsDir 'rustup'
 $rustup = Join-Path $cargoHome 'bin\rustup.exe'
 $gcc = Get-Command gcc -ErrorAction SilentlyContinue
 
-if (-not (Test-Path (Join-Path $cargoHome 'bin\cargo.exe')) -or -not (Test-Path $rustup) -or -not (Test-Path (Join-Path $toolsDir 'yt-dlp.exe'))) {
+if (-not (Test-Path (Join-Path $cargoHome 'bin\cargo.exe')) -or -not (Test-Path $rustup) -or -not (Test-Path (Join-Path $toolsDir 'yt-dlp.exe')) -or -not (Test-Path (Join-Path $toolsDir 'deno\deno.exe'))) {
     & (Join-Path $projectRoot 'setup.ps1')
     if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
@@ -42,6 +42,7 @@ try {
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     Copy-Item -LiteralPath (Join-Path $toolsDir 'yt-dlp.exe') -Destination (Join-Path $profileDir 'yt-dlp.exe') -Force
+    Copy-Item -LiteralPath (Join-Path $toolsDir 'deno\deno.exe') -Destination (Join-Path $profileDir 'deno.exe') -Force
 
     if ($Run) {
         $binary = Join-Path $profileDir 'texto-youtube-cli.exe'
