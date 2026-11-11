@@ -1,23 +1,54 @@
 # Texto de YouTube
 
-Programa sencillo en Rust: recibe un enlace de YouTube y muestra la transcripción disponible, sin descargar el video.
+Pequeña herramienta de línea de comandos escrita en Rust. Recibe un enlace de YouTube y muestra en la terminal la transcripción disponible, sin descargar el video.
 
-## Requisito
+## Requisitos
 
-Instala [yt-dlp](https://github.com/yt-dlp/yt-dlp#installation) y comprueba que el comando `yt-dlp` funcione desde una terminal. El programa usa subtítulos publicados por el canal o subtítulos automáticos. Si el video no ofrece subtítulos, no puede inventar una transcripción.
+- Windows 10/11 de 64 bits y PowerShell.
+- Conexión a Internet durante la configuración inicial.
+- GCC para Windows (MinGW-w64) disponible como comando `gcc`. El proyecto incluye un entorno local de Rust; `yt-dlp` también se instala dentro del proyecto.
 
-## Ejecutar
+La configuración no modifica el `PATH` ni instala Rust o `yt-dlp` en el perfil del usuario. Ambos quedan bajo `.tools/`, que Git ignora. Rustup usa `rsproxy.cn` como espejo de descarga del toolchain.
 
-Desde esta carpeta:
+## Configurar
 
-```sh
-cargo run -- "https://www.youtube.com/watch?v=ID_DEL_VIDEO"
+Abre PowerShell en la carpeta del proyecto y ejecuta:
+
+```powershell
+.\setup.ps1
 ```
 
-Para crear un ejecutable:
+El script descarga Rust (toolchain GNU) y `yt-dlp` en `.tools/`. Se puede volver a ejecutar para completar una instalación interrumpida.
 
-```sh
-cargo build --release
+## Compilar
+
+```powershell
+.\build.ps1
 ```
 
-La transcripción sale por la terminal. El programa usa el primer archivo de subtítulos que yt-dlp entrega y elimina los tiempos y etiquetas de formato.
+El ejecutable optimizado se crea en `target\release\texto-youtube.exe`. Para compilar en modo de desarrollo:
+
+```powershell
+.\build.ps1 -DebugBuild
+```
+
+## Usar
+
+```powershell
+.\target\release\texto-youtube.exe "https://www.youtube.com/watch?v=ID_DEL_VIDEO"
+```
+
+También se puede compilar y ejecutar en un paso:
+
+```powershell
+.\build.ps1 -Run "https://www.youtube.com/watch?v=ID_DEL_VIDEO"
+```
+
+El programa busca subtítulos publicados o automáticos. Si el video no ofrece subtítulos, no puede generar una transcripción. Se usa el primer archivo de subtítulos que `yt-dlp` entrega; el texto se imprime sin tiempos ni etiquetas de formato. La disponibilidad y las condiciones de acceso dependen de YouTube y del video.
+
+## Archivos locales
+
+- `.tools/`: Rust, `yt-dlp` y sus archivos de configuración locales.
+- `target/`: ejecutables y archivos de compilación de Cargo.
+
+Ambas carpetas están excluidas de Git. `Cargo.lock` se conserva para registrar las versiones exactas de las dependencias Rust.

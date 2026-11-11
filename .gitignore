@@ -1,0 +1,5 @@
+# Herramientas instaladas localmente para este proyecto
+/.tools/
+
+# Artefactos de compilación de Cargo
+/target/
