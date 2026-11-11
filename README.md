@@ -1,6 +1,6 @@
-# Texto de YouTube
+# Texto de YouTube — versión 2
 
-Pequeña herramienta de línea de comandos escrita en Rust. Recibe un enlace de YouTube y muestra en la terminal la transcripción disponible, sin descargar el video.
+Aplicación de escritorio para Windows que obtiene transcripciones disponibles de YouTube sin descargar el video. Pega el enlace, pulsa **Obtener texto** y copia el resultado desde la ventana.
 
 ## Requisitos
 
@@ -26,16 +26,24 @@ El script descarga Rust (toolchain GNU) y `yt-dlp` en `.tools/`. Se puede volver
 .\build.ps1
 ```
 
-El ejecutable optimizado se crea en `target\release\texto-youtube.exe`. Para compilar en modo de desarrollo:
+La aplicación de escritorio y la herramienta de consola se crean en `target\release`. El script coloca `yt-dlp.exe` junto a ellas para que la aplicación pueda ejecutarse desde esa carpeta.
+
+Abre la aplicación haciendo doble clic en:
+
+```text
+target\release\texto-youtube.exe
+```
+
+La interfaz permite pegar el enlace, obtener la transcripción y copiarla al portapapeles. Para compilar en modo de desarrollo:
 
 ```powershell
 .\build.ps1 -DebugBuild
 ```
 
-## Usar
+## Usar la consola
 
 ```powershell
-.\target\release\texto-youtube.exe "https://www.youtube.com/watch?v=ID_DEL_VIDEO"
+.\target\release\texto-youtube-cli.exe "https://www.youtube.com/watch?v=ID_DEL_VIDEO"
 ```
 
 También se puede compilar y ejecutar en un paso:

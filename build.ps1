@@ -34,15 +34,17 @@ if (-not ($installedToolchains -match '^stable-x86_64-pc-windows-gnu')) {
 
 $cargoArgs = @('build')
 if (-not $DebugBuild) { $cargoArgs += '--release' }
+$profile = if ($DebugBuild) { 'debug' } else { 'release' }
+$profileDir = Join-Path $projectRoot "target\$profile"
 Push-Location $projectRoot
 try {
     & (Join-Path $cargoHome 'bin\cargo.exe') @cargoArgs
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+    Copy-Item -LiteralPath (Join-Path $toolsDir 'yt-dlp.exe') -Destination (Join-Path $profileDir 'yt-dlp.exe') -Force
+
     if ($Run) {
-        $profile = if ($DebugBuild) { 'debug' } else { 'release' }
-        $binary = Join-Path $projectRoot "target\$profile\texto-youtube.exe"
-        $env:PATH = $toolsDir + ';' + $env:PATH
+        $binary = Join-Path $profileDir 'texto-youtube-cli.exe'
         & $binary $Run
         exit $LASTEXITCODE
     }
