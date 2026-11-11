@@ -5,7 +5,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-pub fn fetch(url: &str, yt_dlp: Option<&Path>, deno: Option<&Path>) -> Result<String, String> {
+pub fn fetch(url: &str, languages: &str, yt_dlp: Option<&Path>, deno: Option<&Path>) -> Result<String, String> {
     if !(url.contains("youtube.com/") || url.contains("youtu.be/")) {
         return Err("El enlace no parece ser de YouTube.".into());
     }
@@ -18,6 +18,11 @@ pub fn fetch(url: &str, yt_dlp: Option<&Path>, deno: Option<&Path>) -> Result<St
     fs::create_dir_all(&dir).map_err(|e| format!("No pude crear carpeta temporal: {e}"))?;
     let template = dir.join("sub.%(ext)s");
     let executable = yt_dlp.map(Path::to_path_buf).unwrap_or_else(|| PathBuf::from("yt-dlp"));
+    let languages = languages.split(',').map(str::trim).filter(|s| !s.is_empty()).collect::<Vec<_>>().join(",");
+    if languages.is_empty() {
+        let _ = fs::remove_dir_all(&dir);
+        return Err("Escribe al menos un idioma, por ejemplo: es,en".into());
+    }
     let Some(deno) = deno else {
         let _ = fs::remove_dir_all(&dir);
         return Err("No encuentro Deno junto a la aplicación. Vuelve a ejecutar setup.ps1 y build.ps1.".into());
@@ -31,7 +36,7 @@ pub fn fetch(url: &str, yt_dlp: Option<&Path>, deno: Option<&Path>) -> Result<St
             "--write-subs",
             "--write-auto-subs",
             "--sub-langs",
-            "all",
+            &languages,
             "--sub-format",
             "vtt",
             "--output",
@@ -48,8 +53,12 @@ pub fn fetch(url: &str, yt_dlp: Option<&Path>, deno: Option<&Path>) -> Result<St
         }
     };
     if !output.status.success() {
-        let message = String::from_utf8_lossy(&output.stderr).trim().to_owned();
+        let stderr = String::from_utf8_lossy(&output.stderr);
         let _ = fs::remove_dir_all(&dir);
+        if stderr.contains("429") || stderr.contains("Too Many Requests") {
+            return Err("YouTube limitó temporalmente las solicitudes (HTTP 429). Espera unos minutos y vuelve a intentar.".into());
+        }
+        let message = stderr.lines().filter(|line| !line.contains("WARNING: ffmpeg not found")).collect::<Vec<_>>().join("\r\n").trim().to_owned();
         return Err(format!("yt-dlp no pudo obtener los subtítulos. {message}"));
     }
 

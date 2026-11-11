@@ -40,6 +40,7 @@ const IDC_FETCH: i32 = 102;
 const IDC_TEXT: i32 = 103;
 const IDC_COPY: i32 = 104;
 const IDC_STATUS: i32 = 105;
+const IDC_LANGUAGES: i32 = 106;
 
 #[repr(C)]
 struct Point { x: i32, y: i32 }
@@ -128,9 +129,12 @@ unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, 
             create_control(hwnd, "STATIC", "Pega un enlace de YouTube", 0, 0, 24, 22, 400, 24);
             create_control(hwnd, "EDIT", "", IDC_URL, WS_BORDER | ES_LEFT, 24, 52, 650, 32);
             create_control(hwnd, "BUTTON", "Obtener texto", IDC_FETCH, BS_PUSHBUTTON, 690, 52, 140, 32);
-            create_control(hwnd, "STATIC", "Transcripción", 0, 0, 24, 102, 300, 24);
+            create_control(hwnd, "STATIC", "Idiomas (códigos separados por coma)", 0, 0, 24, 98, 330, 24);
+            create_control(hwnd, "EDIT", "es,en", IDC_LANGUAGES, WS_BORDER | ES_LEFT, 24, 126, 250, 30);
+            create_control(hwnd, "STATIC", "Ejemplos: es,en · fr,ja · de", 0, 0, 290, 130, 450, 24);
+            create_control(hwnd, "STATIC", "Transcripción", 0, 0, 24, 170, 300, 24);
             create_control(hwnd, "EDIT", "", IDC_TEXT, WS_BORDER | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY,
-                24, 132, 806, 400);
+                24, 200, 806, 332);
             create_control(hwnd, "BUTTON", "Copiar texto", IDC_COPY, BS_PUSHBUTTON, 690, 552, 140, 34);
             create_control(hwnd, "STATIC", "Listo. Pega un enlace para comenzar.", IDC_STATUS, 0, 24, 557, 500, 28);
             0
@@ -139,10 +143,11 @@ unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, 
             let width = (lparam as u32 & 0xffff) as i32;
             let height = ((lparam as u32 >> 16) & 0xffff) as i32;
             let text_width = (width - 48).max(300);
-            let output_height = (height - 210).max(180);
+            let output_height = (height - 278).max(180);
             MoveWindow(GetDlgItem(hwnd, IDC_URL), 24, 52, (width - 220).max(200), 32, 1);
             MoveWindow(GetDlgItem(hwnd, IDC_FETCH), width - 164, 52, 140, 32, 1);
-            MoveWindow(GetDlgItem(hwnd, IDC_TEXT), 24, 132, text_width, output_height, 1);
+            MoveWindow(GetDlgItem(hwnd, IDC_LANGUAGES), 24, 126, 250, 30, 1);
+            MoveWindow(GetDlgItem(hwnd, IDC_TEXT), 24, 200, text_width, output_height, 1);
             MoveWindow(GetDlgItem(hwnd, IDC_COPY), width - 164, height - 62, 140, 34, 1);
             MoveWindow(GetDlgItem(hwnd, IDC_STATUS), 24, height - 60, 500, 28, 1);
             0
@@ -155,8 +160,17 @@ unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, 
                 let mut buffer = vec![0u16; length + 1];
                 GetWindowTextW(input, buffer.as_mut_ptr(), buffer.len() as i32);
                 let url = String::from_utf16_lossy(&buffer[..length]).trim().to_owned();
+                let language_input = GetDlgItem(hwnd, IDC_LANGUAGES);
+                let language_length = GetWindowTextLengthW(language_input).max(0) as usize;
+                let mut language_buffer = vec![0u16; language_length + 1];
+                GetWindowTextW(language_input, language_buffer.as_mut_ptr(), language_buffer.len() as i32);
+                let languages = String::from_utf16_lossy(&language_buffer[..language_length]);
                 if url.is_empty() {
                     set_text(GetDlgItem(hwnd, IDC_STATUS), "Pega primero un enlace de YouTube.");
+                    return 0;
+                }
+                if languages.split(',').all(|code| code.trim().is_empty()) {
+                    set_text(GetDlgItem(hwnd, IDC_STATUS), "Escribe al menos un idioma, por ejemplo: es,en.");
                     return 0;
                 }
                 EnableWindow(GetDlgItem(hwnd, IDC_FETCH), 0);
@@ -168,7 +182,7 @@ unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, 
                 thread::spawn(move || {
                     let executable = yt_dlp.filter(|path| path.exists());
                     let runtime = deno.filter(|path| path.exists());
-                    let result = transcript::fetch(&url, executable.as_deref(), runtime.as_deref());
+                    let result = transcript::fetch(&url, &languages, executable.as_deref(), runtime.as_deref());
                     let payload = Box::into_raw(Box::new(result));
                     unsafe { PostMessageW(window as Hwnd, WM_APP_RESULT, 0, payload as Lparam); }
                 });
@@ -208,7 +222,10 @@ unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, 
                     SendMessageW(GetDlgItem(hwnd, IDC_TEXT), EM_REPLACESEL, 1, text.as_ptr() as Lparam);
                     set_text(GetDlgItem(hwnd, IDC_STATUS), "Transcripción lista. Ya puedes copiarla.");
                 }
-                Err(error) => set_text(GetDlgItem(hwnd, IDC_STATUS), &error),
+                Err(error) => {
+                    set_text(GetDlgItem(hwnd, IDC_STATUS), "No se pudo obtener la transcripción. Revisa el detalle abajo.");
+                    set_text(GetDlgItem(hwnd, IDC_TEXT), &error);
+                }
             }
             0
         }

@@ -34,7 +34,7 @@ Abre la aplicación haciendo doble clic en:
 target\release\texto-youtube.exe
 ```
 
-La interfaz permite pegar el enlace, obtener la transcripción y copiarla al portapapeles. Para compilar en modo de desarrollo:
+La interfaz permite pegar el enlace, elegir los idiomas (por defecto `es,en`), obtener la transcripción y copiarla al portapapeles. Puedes escribir varios códigos separados por comas, como `fr,ja`; no se solicitan todos los idiomas para reducir las peticiones a YouTube. Para compilar en modo de desarrollo:
 
 ```powershell
 .\build.ps1 -DebugBuild
@@ -43,7 +43,7 @@ La interfaz permite pegar el enlace, obtener la transcripción y copiarla al por
 ## Usar la consola
 
 ```powershell
-.\target\release\texto-youtube-cli.exe "https://www.youtube.com/watch?v=ID_DEL_VIDEO"
+.\target\release\texto-youtube-cli.exe "https://www.youtube.com/watch?v=ID_DEL_VIDEO" es,en
 ```
 
 También se puede compilar y ejecutar en un paso:
@@ -58,6 +58,7 @@ El programa busca subtítulos publicados o automáticos. Si el video no ofrece s
 
 - Si falta `deno.exe` o `yt-dlp.exe`, vuelve a ejecutar `.\setup.ps1` y después `.\build.ps1`.
 - Si la configuración no puede descargar las herramientas, comprueba que haya conexión a Internet y vuelve a ejecutar `.\setup.ps1`. Los archivos se guardan dentro de `.tools/`.
+- Si aparece HTTP 429, YouTube limitó temporalmente las solicitudes. Espera unos minutos antes de reintentar y solicita solo los idiomas necesarios.
 - Si `yt-dlp` informa que el video no ofrece subtítulos, prueba otro video que tenga subtítulos disponibles; el programa no genera transcripciones por sí mismo.
 
 ## Archivos locales
