@@ -286,16 +286,17 @@ unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, 
             SendMessageW(list, LB_RESETCONTENT, 0, 0);
             match *result {
                 Ok(tracks) => {
-                    let has_preferred = tracks.iter().any(|track| track.code == "es" || track.code == "en");
+                    let default_track = tracks.iter().position(|track| track.code == "es")
+                        .or_else(|| tracks.iter().position(|track| track.code == "en"))
+                        .unwrap_or(0);
                     for (index, track) in tracks.into_iter().enumerate() {
-                        let preferred = track.code == "es" || track.code == "en";
                         let label = wide(&track.display_name());
                         SendMessageW(list, LB_ADDSTRING, 0, label.as_ptr() as Lparam);
-                        if preferred || (!has_preferred && index == 0) {
+                        if index == default_track {
                             SendMessageW(list, LB_SETSEL, 1, index as Lparam);
                         }
                     }
-                    set_text(GetDlgItem(hwnd, IDC_STATUS), "Idiomas listos. Español e inglés se seleccionan si existen; mantén Ctrl para elegir varios.");
+                    set_text(GetDlgItem(hwnd, IDC_STATUS), "Idiomas listos. Se seleccionó una pista; mantén Ctrl para elegir más.");
                 }
                 Err(error) => {
                     set_text(GetDlgItem(hwnd, IDC_STATUS), "No se pudieron consultar las pistas. Revisa el detalle abajo.");

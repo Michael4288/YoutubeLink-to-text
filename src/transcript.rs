@@ -30,7 +30,15 @@ pub fn discover(url: &str, yt_dlp: Option<&Path>, deno: Option<&Path>) -> Result
     let output = Command::new(executable)
         .arg("--js-runtimes")
         .arg(format!("deno:{}", deno.display()))
-        .args(["--skip-download", "--list-subs", url])
+        .args([
+            "--sleep-requests",
+            "1",
+            "--retry-sleep",
+            "http:exp=2:30",
+            "--skip-download",
+            "--list-subs",
+            url,
+        ])
         .output()
         .map_err(|e| format!("No pude iniciar yt-dlp: {e}"))?;
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -140,6 +148,12 @@ pub fn fetch(url: &str, languages: &str, yt_dlp: Option<&Path>, deno: Option<&Pa
         .arg("--js-runtimes")
         .arg(format!("deno:{}", deno.display()))
         .args([
+            "--sleep-requests",
+            "1",
+            "--sleep-subtitles",
+            "2",
+            "--retry-sleep",
+            "http:exp=2:30",
             "--skip-download",
             "--write-subs",
             "--write-auto-subs",
@@ -178,18 +192,40 @@ pub fn fetch(url: &str, languages: &str, yt_dlp: Option<&Path>, deno: Option<&Pa
         .collect();
     files.sort();
 
-    let transcript = if let Some(file) = files.first() {
-        let vtt = fs::read_to_string(file).map_err(|e| format!("No pude leer la transcripción: {e}"))?;
-        clean_vtt(&vtt)
-    } else {
-        String::new()
-    };
+    let mut transcripts = Vec::new();
+    for file in &files {
+        let vtt = match fs::read_to_string(file) {
+            Ok(vtt) => vtt,
+            Err(e) => {
+                let _ = fs::remove_dir_all(&dir);
+                return Err(format!("No pude leer la transcripción: {e}"));
+            }
+        };
+        let text = clean_vtt(&vtt);
+        if !text.is_empty() {
+            let language = file.file_stem().and_then(|stem| stem.to_str())
+                .and_then(|stem| stem.strip_prefix("sub."))
+                .unwrap_or("subtítulo");
+            transcripts.push(format!("===== {language} =====\r\n{text}"));
+        }
+    }
+    let transcript = transcripts.join("\r\n\r\n");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let had_rate_limit = stderr.contains("429") || stderr.contains("Too Many Requests");
     let _ = fs::remove_dir_all(&dir);
 
     if transcript.is_empty() {
-        Err("Este video no tiene subtítulos disponibles.".into())
+        if had_rate_limit {
+            Err("YouTube limitó temporalmente las solicitudes (HTTP 429). Espera unos minutos y vuelve a intentar.".into())
+        } else {
+            Err("Este video no tiene subtítulos disponibles.".into())
+        }
     } else {
-        Ok(transcript)
+        if had_rate_limit {
+            Ok(format!("Algunas pistas no se pudieron obtener porque YouTube respondió HTTP 429. Espera unos minutos para volver a intentarlo.\r\n\r\n{transcript}"))
+        } else {
+            Ok(transcript)
+        }
     }
 }
 

@@ -43,10 +43,10 @@ Keep these four files together when sharing the app: `texto-youtube.exe`, `texto
 ## Choose subtitle languages
 
 1. Paste a YouTube link and select **Search languages**.
-2. The list shows the available manual and automatic caption tracks. Spanish and English are preselected when the video offers them; if neither is available, the first track is selected.
-3. Select one or more tracks. Hold **Ctrl** while clicking to add or remove tracks, then select **Get transcript**.
+2. The list shows the available manual and automatic caption tracks. Spanish is selected by default; if unavailable, English is selected; otherwise the first available track is selected.
+3. Select one or more tracks. Hold **Ctrl** while clicking to add or remove tracks, then select **Get transcript**. Each retrieved track appears in the result with its language code.
 
-The app checks which tracks are available before downloading captions. It does not download every track automatically. If the video has no captions, the app reports that and does not start a caption download.
+The app checks which tracks are available before downloading captions. It does not download every track automatically. To reduce request limit errors, it spaces out requests and retries failed HTTP requests. If YouTube returns HTTP 429, wait a few minutes before trying again.
 
 ## Use the command line
 
