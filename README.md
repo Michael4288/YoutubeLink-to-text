@@ -7,7 +7,7 @@ A Windows desktop app for retrieving and copying available YouTube captions. Pas
 ## Features
 
 - Simple desktop window with a link field and a copyable transcript area.
-- Spanish and English (`es,en`) by default; enter other comma-separated language codes, such as `fr,ja`.
+- Inspect the subtitle tracks offered by a video and select one or more before retrieval. Spanish and English are selected by default when available.
 - A command-line version for running transcript extraction from PowerShell.
 - Deno and `yt-dlp` are downloaded into the project folder; you do not need to install them or add them to `PATH`.
 
@@ -40,9 +40,17 @@ Double-click `target\release\texto-youtube.exe`, or run it from PowerShell:
 
 Keep these four files together when sharing the app: `texto-youtube.exe`, `texto-youtube-cli.exe`, `yt-dlp.exe`, and `deno.exe`.
 
+## Choose subtitle languages
+
+1. Paste a YouTube link and select **Search languages**.
+2. The list shows the available manual and automatic caption tracks. Spanish and English are preselected when the video offers them; if neither is available, the first track is selected.
+3. Select one or more tracks. Hold **Ctrl** while clicking to add or remove tracks, then select **Get transcript**.
+
+The app checks which tracks are available before downloading captions. It does not download every track automatically. If the video has no captions, the app reports that and does not start a caption download.
+
 ## Use the command line
 
-The language argument is optional. If omitted, the app looks for Spanish and English subtitles:
+The language argument is optional. If omitted, the app requests Spanish and English subtitles:
 
 ```powershell
 .\target\release\texto-youtube-cli.exe "https://www.youtube.com/watch?v=VIDEO_ID" es,en

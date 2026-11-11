@@ -7,7 +7,7 @@ Aplicación de escritorio para Windows que obtiene y copia subtítulos disponibl
 ## Funciones
 
 - Ventana sencilla con campo para el enlace y cuadro de texto copiable.
-- Español e inglés (`es,en`) como idiomas iniciales; puedes indicar otros códigos separados por comas, por ejemplo `fr,ja`.
+- Consulta las pistas de subtítulos que ofrece cada video y elige una o más antes de obtenerlas. Español e inglés se seleccionan inicialmente cuando están disponibles.
 - Herramienta de consola para ejecutar la extracción desde PowerShell.
 - Deno y `yt-dlp` se descargan en la carpeta del proyecto; no necesitas instalarlos ni añadirlos al `PATH`.
 
@@ -40,9 +40,17 @@ Haz doble clic en `target\release\texto-youtube.exe`, o ejecútalo desde PowerSh
 
 Al compartir la aplicación, mantén juntos estos cuatro archivos: `texto-youtube.exe`, `texto-youtube-cli.exe`, `yt-dlp.exe` y `deno.exe`.
 
+## Elegir idiomas de subtítulos
+
+1. Pega un enlace de YouTube y pulsa **Buscar idiomas**.
+2. La lista muestra las pistas manuales y automáticas disponibles. Español e inglés quedan seleccionados si el video los ofrece; si no, se selecciona la primera pista disponible.
+3. Elige una o más pistas. Mantén **Ctrl** mientras haces clic para agregar o quitar pistas y luego pulsa **Obtener texto**.
+
+La aplicación consulta qué pistas existen antes de descargar subtítulos. No descarga todas las pistas automáticamente. Si el video no tiene subtítulos, lo indica y no inicia una descarga de subtítulos.
+
 ## Usar la consola
 
-El argumento de idiomas es opcional. Si lo omites, se buscan subtítulos en español e inglés:
+El argumento de idiomas es opcional. Si lo omites, se solicitan subtítulos en español e inglés:
 
 ```powershell
 .\target\release\texto-youtube-cli.exe "https://www.youtube.com/watch?v=ID_DEL_VIDEO" es,en

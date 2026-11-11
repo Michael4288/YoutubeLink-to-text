@@ -5,6 +5,114 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+#[derive(Clone, Debug)]
+pub struct SubtitleTrack {
+    pub code: String,
+    pub name: String,
+    pub source: String,
+    manual: bool,
+}
+
+impl SubtitleTrack {
+    pub fn display_name(&self) -> String {
+        format!("{} — {} ({})", self.code, self.name, self.source)
+    }
+}
+
+pub fn discover(url: &str, yt_dlp: Option<&Path>, deno: Option<&Path>) -> Result<Vec<SubtitleTrack>, String> {
+    if !(url.contains("youtube.com/") || url.contains("youtu.be/")) {
+        return Err("El enlace no parece ser de YouTube.".into());
+    }
+    let executable = yt_dlp.map(Path::to_path_buf).unwrap_or_else(|| PathBuf::from("yt-dlp"));
+    let Some(deno) = deno else {
+        return Err("No encuentro Deno junto a la aplicación. Vuelve a ejecutar setup.ps1 y build.ps1.".into());
+    };
+    let output = Command::new(executable)
+        .arg("--js-runtimes")
+        .arg(format!("deno:{}", deno.display()))
+        .args(["--skip-download", "--list-subs", url])
+        .output()
+        .map_err(|e| format!("No pude iniciar yt-dlp: {e}"))?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if !output.status.success() {
+        let message = format!("{stderr}\n{stdout}");
+        if message.contains("429") || message.contains("Too Many Requests") {
+            return Err("YouTube limitó temporalmente las solicitudes (HTTP 429). Espera unos minutos y vuelve a intentar.".into());
+        }
+        return Err(format!("No pude consultar los idiomas. {}", stderr.trim()));
+    }
+    let tracks = parse_tracks(&stdout);
+    if tracks.is_empty() {
+        Err("Este video no ofrece subtítulos disponibles.".into())
+    } else {
+        Ok(tracks)
+    }
+}
+
+fn parse_tracks(output: &str) -> Vec<SubtitleTrack> {
+    let mut section = "";
+    let mut tracks: Vec<SubtitleTrack> = Vec::new();
+    for line in output.lines() {
+        let lower = line.to_ascii_lowercase();
+        if lower.contains("available automatic captions for") {
+            section = "automatic";
+            continue;
+        }
+        if lower.contains("available subtitles for") {
+            section = "manual";
+            continue;
+        }
+        if section.is_empty() || lower.contains("language") && lower.contains("format") {
+            continue;
+        }
+        let Some(code) = line.split_whitespace().next() else { continue };
+        if !valid_language_code(code) {
+            continue;
+        }
+        let Some(position) = line.find(code) else { continue };
+        let remainder = &line[position + code.len()..];
+        let name = if section == "automatic" {
+            remainder.split(',').next().unwrap_or_default().trim().to_owned()
+        } else {
+            remainder
+                .split_whitespace()
+                .take_while(|word| !word.contains(','))
+                .collect::<Vec<_>>()
+                .join(" ")
+        };
+        let name = if name.is_empty() { code.to_owned() } else { name };
+        let manual = section == "manual";
+        if let Some(existing) = tracks.iter_mut().find(|track| track.code == code) {
+            if manual && !existing.manual {
+                existing.name = name;
+                existing.source = "manual + automático".into();
+                existing.manual = true;
+            } else if !manual && existing.manual {
+                existing.source = "manual + automático".into();
+            }
+            continue;
+        }
+        tracks.push(SubtitleTrack {
+            code: code.to_owned(),
+            name,
+            source: if manual { "manual" } else { "automático" }.into(),
+            manual,
+        });
+    }
+    tracks.sort_by(|a, b| {
+        let rank = |code: &str| match code { "es" => 0, "en" => 1, _ => 2 };
+        rank(&a.code).cmp(&rank(&b.code)).then_with(|| a.name.cmp(&b.name))
+    });
+    tracks
+}
+
+fn valid_language_code(code: &str) -> bool {
+    !code.is_empty()
+        && code.chars().any(|c| c.is_ascii_alphabetic())
+        && code.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
 pub fn fetch(url: &str, languages: &str, yt_dlp: Option<&Path>, deno: Option<&Path>) -> Result<String, String> {
     if !(url.contains("youtube.com/") || url.contains("youtu.be/")) {
         return Err("El enlace no parece ser de YouTube.".into());
