@@ -1,58 +1,60 @@
-# Texto de YouTube
+# YouTube Transcript
 
-Aplicación de escritorio para obtener y copiar subtítulos disponibles en YouTube. Pega el enlace del video, elige los idiomas y pulsa **Obtener texto**. No descarga el video.
+[Read this README in Spanish](README.es.md).
 
-## Funciones
+A Windows desktop app for retrieving and copying available YouTube captions. Paste a video link, choose the subtitle languages, and select **Get transcript**. The app does not download the video.
 
-- Ventana sencilla con campo para el enlace y cuadro de texto copiable.
-- Español e inglés (`es,en`) como idiomas iniciales; puedes indicar otros códigos separados por comas, por ejemplo `fr,ja`.
-- Herramienta de consola incluida para ejecutar la extracción desde PowerShell.
-- Deno y `yt-dlp` se descargan en la carpeta del proyecto; no necesitas instalarlos ni añadirlos al `PATH`.
+## Features
 
-## Requisitos
+- Simple desktop window with a link field and a copyable transcript area.
+- Spanish and English (`es,en`) by default; enter other comma-separated language codes, such as `fr,ja`.
+- A command-line version for running transcript extraction from PowerShell.
+- Deno and `yt-dlp` are downloaded into the project folder; you do not need to install them or add them to `PATH`.
 
-- Windows 10 u 11 de 64 bits.
-- PowerShell y conexión a Internet para la configuración inicial.
-- GCC para Windows (MinGW-w64) disponible como comando `gcc` para compilar.
+## Requirements
 
-La configuración local de Rust usa `rsproxy.cn` como espejo de descarga. Las herramientas se guardan en `.tools/` y no se instalan globalmente.
+- 64-bit Windows 10 or 11.
+- PowerShell and an Internet connection for initial setup.
+- GCC for Windows (MinGW-w64) available as the `gcc` command to compile the project.
 
-## Configurar y compilar
+Rustup uses `rsproxy.cn` as its download mirror. Local tools are stored in `.tools/` and are not installed system-wide.
 
-Abre PowerShell en la carpeta del proyecto y ejecuta:
+## Set up and build
+
+Open PowerShell in the project folder and run:
 
 ```powershell
 .\setup.ps1
 .\build.ps1
 ```
 
-La configuración descarga Rust, `yt-dlp` y Deno dentro de `.tools/`. La compilación coloca los ejecutables en `target\release`.
+Setup downloads Rust, `yt-dlp`, and Deno into `.tools/`. The build places the executables in `target\release`.
 
-## Abrir la aplicación
+## Launch the app
 
-Haz doble clic en `target\release\texto-youtube.exe`, o ejecútalo desde PowerShell:
+Double-click `target\release\texto-youtube.exe`, or run it from PowerShell:
 
 ```powershell
 .\target\release\texto-youtube.exe
 ```
 
-Mantén juntos estos cuatro archivos al compartir la aplicación: `texto-youtube.exe`, `texto-youtube-cli.exe`, `yt-dlp.exe` y `deno.exe`.
+Keep these four files together when sharing the app: `texto-youtube.exe`, `texto-youtube-cli.exe`, `yt-dlp.exe`, and `deno.exe`.
 
-## Usar la consola
+## Use the command line
 
-El último argumento es opcional; si se omite, se buscan subtítulos en español e inglés:
+The language argument is optional. If omitted, the app looks for Spanish and English subtitles:
 
 ```powershell
-.\target\release\texto-youtube-cli.exe "https://www.youtube.com/watch?v=ID_DEL_VIDEO" es,en
+.\target\release\texto-youtube-cli.exe "https://www.youtube.com/watch?v=VIDEO_ID" es,en
 ```
 
-## Límites y solución de problemas
+## Limitations and troubleshooting
 
-- Solo se pueden obtener subtítulos publicados por el canal o generados automáticamente. Si no hay subtítulos para los idiomas elegidos, la aplicación no puede crear una transcripción.
-- Si aparece HTTP 429, YouTube limitó temporalmente las solicitudes. Espera unos minutos antes de volver a intentar y solicita solo los idiomas necesarios.
-- Si faltan `yt-dlp.exe` o `deno.exe`, ejecuta `setup.ps1` y luego `build.ps1` otra vez.
-- Si la configuración no puede descargar herramientas, comprueba la conexión a Internet y vuelve a ejecutar `setup.ps1`.
+- The app can only retrieve captions published by the channel or generated automatically. It cannot create a transcript when no captions are available for the selected languages.
+- If YouTube returns HTTP 429, it has temporarily limited requests. Wait a few minutes before trying again and request only the languages you need.
+- If `yt-dlp.exe` or `deno.exe` is missing, run `setup.ps1` and then `build.ps1` again.
+- If setup cannot download the tools, check your Internet connection and run `setup.ps1` again.
 
-## Archivos de trabajo
+## Local build files
 
-`.tools/` contiene herramientas locales y `target/` contiene los ejecutables compilados. Git ignora ambas carpetas; `Cargo.lock` se conserva en el repositorio.
+`.tools/` contains local tools and `target/` contains compiled executables. Git ignores both folders; `Cargo.lock` is tracked in the repository.
