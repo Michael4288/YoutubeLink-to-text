@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 mod transcript;
 
 use std::env;
