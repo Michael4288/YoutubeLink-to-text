@@ -28,11 +28,15 @@ const BS_PUSHBUTTON: u32 = 0;
 const WM_CREATE: u32 = 0x0001;
 const WM_SIZE: u32 = 0x0005;
 const WM_COMMAND: u32 = 0x0111;
+const WM_CTLCOLOREDIT: u32 = 0x0133;
+const WM_CTLCOLORSTATIC: u32 = 0x0138;
+const WM_GETMINMAXINFO: u32 = 0x0024;
 const EN_CHANGE: usize = 0x0300;
 const WM_DESTROY: u32 = 0x0002;
 const WM_APP_RESULT: u32 = 0x8001;
 const WM_APP_TRACKS: u32 = 0x8002;
 const SW_SHOW: i32 = 5;
+const WM_SETFONT: u32 = 0x0030;
 const EM_SETSEL: u32 = 0x00B1;
 const EM_REPLACESEL: u32 = 0x00C2;
 const CF_UNICODETEXT: u32 = 13;
@@ -44,6 +48,12 @@ const IDC_COPY: i32 = 104;
 const IDC_STATUS: i32 = 105;
 const IDC_DISCOVER: i32 = 107;
 const IDC_TRACKS: i32 = 108;
+const IDC_TITLE: i32 = 109;
+const IDC_INTRO: i32 = 110;
+const IDC_VIDEO_LABEL: i32 = 111;
+const IDC_TRACKS_LABEL: i32 = 112;
+const IDC_TRACKS_HELP: i32 = 113;
+const IDC_RESULT_LABEL: i32 = 114;
 const LBS_NOTIFY: u32 = 0x0001;
 const LBS_EXTENDEDSEL: u32 = 0x0800;
 const LB_ADDSTRING: u32 = 0x0180;
@@ -56,6 +66,15 @@ const LB_GETTEXT: u32 = 0x0189;
 
 #[repr(C)]
 struct Point { x: i32, y: i32 }
+
+#[repr(C)]
+struct MinMaxInfo {
+    reserved: Point,
+    max_size: Point,
+    max_position: Point,
+    min_track_size: Point,
+    max_track_size: Point,
+}
 
 #[repr(C)]
 struct Msg {
@@ -106,6 +125,17 @@ unsafe extern "system" {
     fn SetClipboardData(format: u32, memory: Hwnd) -> Hwnd;
     fn CloseClipboard() -> i32;
     fn SendMessageW(hwnd: Hwnd, message: u32, wparam: Wparam, lparam: Lparam) -> Lresult;
+    fn SetBkMode(dc: Hwnd, mode: i32) -> i32;
+    fn SetBkColor(dc: Hwnd, color: u32) -> u32;
+    fn SetTextColor(dc: Hwnd, color: u32) -> u32;
+    fn GetSysColorBrush(index: i32) -> Hwnd;
+}
+
+#[link(name = "gdi32")]
+unsafe extern "system" {
+    fn CreateFontW(height: i32, width: i32, escapement: i32, orientation: i32, weight: i32,
+        italic: u32, underline: u32, strikeout: u32, charset: u32, out_precision: u32,
+        clip_precision: u32, quality: u32, pitch_and_family: u32, face: *const u16) -> Hwnd;
 }
 
 #[link(name = "kernel32")]
@@ -138,39 +168,91 @@ fn create_control(parent: Hwnd, class: &str, label: &str, id: i32, style: u32,
 unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, lparam: Lparam) -> Lresult {
     match message {
         WM_CREATE => {
-            create_control(hwnd, "STATIC", "Pega un enlace de YouTube", 0, 0, 24, 22, 400, 24);
-            create_control(hwnd, "EDIT", "", IDC_URL, WS_BORDER | ES_LEFT, 24, 52, 650, 32);
-            create_control(hwnd, "BUTTON", "Buscar idiomas", IDC_DISCOVER, BS_PUSHBUTTON, 690, 52, 140, 32);
-            create_control(hwnd, "STATIC", "Idiomas disponibles (elige una o más pistas)", 0, 0, 24, 98, 500, 24);
-            create_control(hwnd, "LISTBOX", "", IDC_TRACKS, WS_BORDER | WS_VSCROLL | LBS_NOTIFY | LBS_EXTENDEDSEL, 24, 124, 806, 100);
-            create_control(hwnd, "BUTTON", "Obtener texto", IDC_FETCH, BS_PUSHBUTTON, 690, 238, 140, 32);
-            create_control(hwnd, "STATIC", "Transcripción", 0, 0, 24, 284, 300, 24);
+            create_control(hwnd, "STATIC", "Texto de YouTube", IDC_TITLE, 0, 32, 24, 720, 38);
+            create_control(hwnd, "STATIC", "Obtén, revisa y copia subtítulos en unos pasos.", IDC_INTRO, 0, 34, 66, 720, 26);
+            create_control(hwnd, "STATIC", "1   VIDEO", IDC_VIDEO_LABEL, 0, 34, 118, 400, 24);
+            create_control(hwnd, "STATIC", "Pega el enlace del video", 0, 0, 34, 148, 400, 22);
+            create_control(hwnd, "EDIT", "", IDC_URL, WS_BORDER | ES_LEFT, 34, 176, 650, 36);
+            create_control(hwnd, "BUTTON", "Buscar idiomas", IDC_DISCOVER, BS_PUSHBUTTON, 700, 176, 150, 36);
+            create_control(hwnd, "STATIC", "2   IDIOMA", IDC_TRACKS_LABEL, 0, 34, 232, 400, 24);
+            create_control(hwnd, "STATIC", "Elige una o más pistas. Se selecciona una por defecto.", IDC_TRACKS_HELP, 0, 34, 260, 700, 22);
+            create_control(hwnd, "LISTBOX", "", IDC_TRACKS, WS_BORDER | WS_VSCROLL | LBS_NOTIFY | LBS_EXTENDEDSEL, 34, 290, 816, 126);
+            create_control(hwnd, "BUTTON", "Obtener texto", IDC_FETCH, BS_PUSHBUTTON, 700, 430, 150, 38);
+            create_control(hwnd, "STATIC", "3   RESULTADO", IDC_RESULT_LABEL, 0, 34, 492, 500, 26);
             create_control(hwnd, "EDIT", "", IDC_TEXT, WS_BORDER | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY,
-                24, 312, 806, 220);
-            create_control(hwnd, "BUTTON", "Copiar texto", IDC_COPY, BS_PUSHBUTTON, 690, 552, 140, 34);
-            create_control(hwnd, "STATIC", "Listo. Pega un enlace para comenzar.", IDC_STATUS, 0, 24, 557, 500, 28);
+                34, 526, 816, 220);
+            create_control(hwnd, "BUTTON", "Copiar texto", IDC_COPY, BS_PUSHBUTTON, 700, 488, 150, 34);
+            create_control(hwnd, "STATIC", "Pega un enlace para comenzar.", IDC_STATUS, 0, 34, 772, 760, 28);
+            let regular_name = wide("Segoe UI");
+            let regular = CreateFontW(-18, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 5, 0, regular_name.as_ptr());
+            let title = CreateFontW(-28, 0, 0, 0, 600, 0, 0, 0, 1, 0, 0, 5, 0, regular_name.as_ptr());
+            let section = CreateFontW(-16, 0, 0, 0, 600, 0, 0, 0, 1, 0, 0, 5, 0, regular_name.as_ptr());
+            for id in [IDC_INTRO, IDC_VIDEO_LABEL, IDC_TRACKS_LABEL, IDC_TRACKS_HELP, IDC_RESULT_LABEL, IDC_URL, IDC_TRACKS, IDC_TEXT, IDC_STATUS, IDC_DISCOVER, IDC_FETCH, IDC_COPY] {
+                SendMessageW(GetDlgItem(hwnd, id), WM_SETFONT, regular as usize, 1);
+            }
+            SendMessageW(GetDlgItem(hwnd, IDC_TITLE), WM_SETFONT, title as usize, 1);
+            for id in [IDC_VIDEO_LABEL, IDC_TRACKS_LABEL, IDC_RESULT_LABEL] {
+                SendMessageW(GetDlgItem(hwnd, id), WM_SETFONT, section as usize, 1);
+            }
+            EnableWindow(GetDlgItem(hwnd, IDC_FETCH), 0);
+            EnableWindow(GetDlgItem(hwnd, IDC_COPY), 0);
             0
         }
         WM_SIZE => {
             let width = (lparam as u32 & 0xffff) as i32;
             let height = ((lparam as u32 >> 16) & 0xffff) as i32;
-            let text_width = (width - 48).max(300);
-            let output_height = (height - 390).max(120);
-            MoveWindow(GetDlgItem(hwnd, IDC_URL), 24, 52, (width - 220).max(200), 32, 1);
-            MoveWindow(GetDlgItem(hwnd, IDC_DISCOVER), width - 164, 52, 140, 32, 1);
-            MoveWindow(GetDlgItem(hwnd, IDC_TRACKS), 24, 124, text_width, 100, 1);
-            MoveWindow(GetDlgItem(hwnd, IDC_FETCH), width - 164, 238, 140, 32, 1);
-            MoveWindow(GetDlgItem(hwnd, IDC_TEXT), 24, 312, text_width, output_height, 1);
-            MoveWindow(GetDlgItem(hwnd, IDC_COPY), width - 164, height - 62, 140, 34, 1);
-            MoveWindow(GetDlgItem(hwnd, IDC_STATUS), 24, height - 60, 500, 28, 1);
+            let content_width = (width - 68).max(500);
+            let output_height = (height - 584).max(170);
+            for id in [IDC_TITLE, IDC_INTRO] { MoveWindow(GetDlgItem(hwnd, id), 34, if id == IDC_TITLE { 24 } else { 66 }, content_width, if id == IDC_TITLE { 38 } else { 26 }, 1); }
+            MoveWindow(GetDlgItem(hwnd, IDC_VIDEO_LABEL), 34, 118, content_width, 24, 1);
+            MoveWindow(GetDlgItem(hwnd, IDC_TRACKS_LABEL), 34, 232, content_width, 24, 1);
+            MoveWindow(GetDlgItem(hwnd, IDC_TRACKS_HELP), 34, 260, content_width, 22, 1);
+            MoveWindow(GetDlgItem(hwnd, IDC_URL), 34, 176, (content_width - 166).max(220), 36, 1);
+            MoveWindow(GetDlgItem(hwnd, IDC_DISCOVER), width - 184, 176, 150, 36, 1);
+            MoveWindow(GetDlgItem(hwnd, IDC_TRACKS), 34, 290, content_width, 126, 1);
+            MoveWindow(GetDlgItem(hwnd, IDC_FETCH), width - 184, 430, 150, 38, 1);
+            MoveWindow(GetDlgItem(hwnd, IDC_RESULT_LABEL), 34, 492, content_width - 170, 26, 1);
+            MoveWindow(GetDlgItem(hwnd, IDC_COPY), width - 184, 488, 150, 34, 1);
+            MoveWindow(GetDlgItem(hwnd, IDC_TEXT), 34, 526, content_width, output_height, 1);
+            MoveWindow(GetDlgItem(hwnd, IDC_STATUS), 34, height - 48, content_width, 28, 1);
             0
+        }
+        WM_GETMINMAXINFO => {
+            let limits = &mut *(lparam as *mut MinMaxInfo);
+            limits.min_track_size.x = 760;
+            limits.min_track_size.y = 820;
+            0
+        }
+        WM_CTLCOLORSTATIC | WM_CTLCOLOREDIT => {
+            let dc = wparam as Hwnd;
+            let mut color = 0x00352A22;
+            if lparam as Hwnd == GetDlgItem(hwnd, IDC_STATUS) {
+                let control = lparam as Hwnd;
+                let length = GetWindowTextLengthW(control).max(0) as usize;
+                let mut buffer = vec![0u16; length + 1];
+                GetWindowTextW(control, buffer.as_mut_ptr(), buffer.len() as i32);
+                let status = String::from_utf16_lossy(&buffer[..length]);
+                color = if status.starts_with('✓') { 0x00346516 }
+                    else if status.starts_with('!') { 0x001C1CB9 }
+                    else if status.contains("Buscando") || status.contains("Descargando") { 0x00D84E1D }
+                    else { 0x00556947 };
+            }
+            SetTextColor(dc, color);
+            if message == WM_CTLCOLORSTATIC {
+                SetBkMode(dc, 1);
+            } else {
+                SetBkColor(dc, 0x00FFFFFF);
+            }
+            GetSysColorBrush(5) as Lresult
         }
         WM_COMMAND => {
             let id = (wparam & 0xffff) as i32;
             if id == IDC_URL && (wparam >> 16) == EN_CHANGE {
                 SendMessageW(GetDlgItem(hwnd, IDC_TRACKS), LB_RESETCONTENT, 0, 0);
                 set_text(GetDlgItem(hwnd, IDC_TEXT), "");
-                set_text(GetDlgItem(hwnd, IDC_STATUS), "El enlace cambió. Busca de nuevo los idiomas disponibles.");
+                EnableWindow(GetDlgItem(hwnd, IDC_FETCH), 0);
+                EnableWindow(GetDlgItem(hwnd, IDC_COPY), 0);
+                set_text(GetDlgItem(hwnd, IDC_STATUS), "El enlace cambió. Busca de nuevo los idiomas.");
             } else if id == IDC_DISCOVER {
                 let input = GetDlgItem(hwnd, IDC_URL);
                 let length = GetWindowTextLengthW(input).max(0) as usize;
@@ -183,7 +265,10 @@ unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, 
                 }
                 EnableWindow(GetDlgItem(hwnd, IDC_DISCOVER), 0);
                 EnableWindow(GetDlgItem(hwnd, IDC_FETCH), 0);
-                set_text(GetDlgItem(hwnd, IDC_STATUS), "Buscando idiomas disponibles…");
+                EnableWindow(GetDlgItem(hwnd, IDC_URL), 0);
+                EnableWindow(GetDlgItem(hwnd, IDC_TRACKS), 0);
+                set_text(GetDlgItem(hwnd, IDC_TEXT), "Consultando las pistas de subtítulos…");
+                set_text(GetDlgItem(hwnd, IDC_STATUS), "Buscando idiomas…");
                 let window = hwnd as isize;
                 let (yt_dlp, deno) = tool_paths();
                 thread::spawn(move || {
@@ -224,7 +309,11 @@ unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, 
                 }
                 EnableWindow(GetDlgItem(hwnd, IDC_FETCH), 0);
                 EnableWindow(GetDlgItem(hwnd, IDC_DISCOVER), 0);
-                set_text(GetDlgItem(hwnd, IDC_STATUS), "Obteniendo transcripción…");
+                EnableWindow(GetDlgItem(hwnd, IDC_COPY), 0);
+                EnableWindow(GetDlgItem(hwnd, IDC_URL), 0);
+                EnableWindow(GetDlgItem(hwnd, IDC_TRACKS), 0);
+                set_text(GetDlgItem(hwnd, IDC_TEXT), "Obteniendo las pistas seleccionadas…");
+                set_text(GetDlgItem(hwnd, IDC_STATUS), "Descargando subtítulos…");
                 let window = hwnd as isize;
                 let (yt_dlp, deno) = tool_paths();
                 thread::spawn(move || {
@@ -263,16 +352,21 @@ unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, 
         WM_APP_RESULT => {
             EnableWindow(GetDlgItem(hwnd, IDC_FETCH), 1);
             EnableWindow(GetDlgItem(hwnd, IDC_DISCOVER), 1);
+            EnableWindow(GetDlgItem(hwnd, IDC_URL), 1);
+            EnableWindow(GetDlgItem(hwnd, IDC_TRACKS), 1);
             let result = Box::from_raw(lparam as *mut Result<String, String>);
             match *result {
                 Ok(text) => {
                     SendMessageW(GetDlgItem(hwnd, IDC_TEXT), EM_SETSEL, 0, -1);
                     let text = wide(&text);
                     SendMessageW(GetDlgItem(hwnd, IDC_TEXT), EM_REPLACESEL, 1, text.as_ptr() as Lparam);
-                    set_text(GetDlgItem(hwnd, IDC_STATUS), "Transcripción lista. Ya puedes copiarla.");
+                    EnableWindow(GetDlgItem(hwnd, IDC_COPY), 1);
+                    set_text(GetDlgItem(hwnd, IDC_STATUS), "✓ Subtítulos listos. Ya puedes copiarlos.");
                 }
                 Err(error) => {
-                    set_text(GetDlgItem(hwnd, IDC_STATUS), "No se pudo obtener la transcripción. Revisa el detalle abajo.");
+                    EnableWindow(GetDlgItem(hwnd, IDC_COPY), 0);
+                    set_text(GetDlgItem(hwnd, IDC_STATUS), "! No se pudo obtener el texto. Detalle en el resultado.");
+                    SendMessageW(GetDlgItem(hwnd, IDC_TEXT), EM_SETSEL, 0, -1);
                     set_text(GetDlgItem(hwnd, IDC_TEXT), &error);
                 }
             }
@@ -280,7 +374,8 @@ unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, 
         }
         WM_APP_TRACKS => {
             EnableWindow(GetDlgItem(hwnd, IDC_DISCOVER), 1);
-            EnableWindow(GetDlgItem(hwnd, IDC_FETCH), 1);
+            EnableWindow(GetDlgItem(hwnd, IDC_URL), 1);
+            EnableWindow(GetDlgItem(hwnd, IDC_TRACKS), 1);
             let result = Box::from_raw(lparam as *mut Result<Vec<transcript::SubtitleTrack>, String>);
             let list = GetDlgItem(hwnd, IDC_TRACKS);
             SendMessageW(list, LB_RESETCONTENT, 0, 0);
@@ -296,10 +391,14 @@ unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, 
                             SendMessageW(list, LB_SETSEL, 1, index as Lparam);
                         }
                     }
-                    set_text(GetDlgItem(hwnd, IDC_STATUS), "Idiomas listos. Se seleccionó una pista; mantén Ctrl para elegir más.");
+                    EnableWindow(GetDlgItem(hwnd, IDC_FETCH), 1);
+                    set_text(GetDlgItem(hwnd, IDC_TEXT), "Selecciona las pistas que quieras obtener y pulsa «Obtener texto».");
+                    set_text(GetDlgItem(hwnd, IDC_STATUS), "✓ Idiomas listos. Mantén Ctrl para elegir más de uno.");
                 }
                 Err(error) => {
-                    set_text(GetDlgItem(hwnd, IDC_STATUS), "No se pudieron consultar las pistas. Revisa el detalle abajo.");
+                    EnableWindow(GetDlgItem(hwnd, IDC_FETCH), 0);
+                    set_text(GetDlgItem(hwnd, IDC_STATUS), "! No se pudieron consultar los idiomas. Detalle en el resultado.");
+                    SendMessageW(GetDlgItem(hwnd, IDC_TEXT), EM_SETSEL, 0, -1);
                     set_text(GetDlgItem(hwnd, IDC_TEXT), &error);
                 }
             }
