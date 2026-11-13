@@ -7,19 +7,28 @@ Aplicación de escritorio para Windows que obtiene y copia subtítulos disponibl
 ## Funciones
 
 - Ventana sencilla con campo para el enlace y cuadro de texto copiable.
-- Consulta las pistas de subtítulos que ofrece cada video y elige una o más antes de obtenerlas. Español e inglés se seleccionan inicialmente cuando están disponibles.
+- Consulta las pistas de subtítulos que ofrece cada video y elige una o más antes de obtenerlas. Se selecciona español por defecto, o inglés si el video no tiene subtítulos en español.
 - Herramienta de consola para ejecutar la extracción desde PowerShell.
 - Deno y `yt-dlp` se descargan en la carpeta del proyecto; no necesitas instalarlos ni añadirlos al `PATH`.
 
 ## Requisitos
 
-- Windows 10 u 11 de 64 bits.
-- PowerShell y conexión a Internet para la configuración inicial.
-- GCC para Windows (MinGW-w64) disponible como comando `gcc` para compilar.
+- Windows 10 u 11 de 64 bits para ejecutar la aplicación.
+- Para compilar desde el código fuente: PowerShell, conexión a Internet y GCC para Windows (MinGW-w64) disponible como comando `gcc`.
 
 Rustup usa `rsproxy.cn` como espejo de descarga. Las herramientas locales se guardan en `.tools/` y no se instalan globalmente.
 
-## Configurar y compilar
+## Descargar la aplicación lista para usar
+
+Descarga el [paquete más reciente para Windows x64](https://github.com/Michael4288/YoutubeLink-to-text/releases/latest/download/texto-youtube-windows-x64.zip), extrae el ZIP y mantén sus cuatro archivos juntos en la misma carpeta. Haz doble clic en `texto-youtube.exe` para abrir la aplicación. No necesitas instalar Rust, Node.js ni Deno.
+
+Para usar la aplicación de consola, abre PowerShell en la carpeta extraída y ejecuta:
+
+```powershell
+.\texto-youtube-cli.exe "https://www.youtube.com/watch?v=ID_DEL_VIDEO" es,en
+```
+
+## Compilar desde el código fuente
 
 Abre PowerShell en la carpeta del proyecto y ejecuta:
 

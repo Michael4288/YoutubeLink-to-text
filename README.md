@@ -7,19 +7,28 @@ A Windows desktop app for retrieving and copying available YouTube captions. Pas
 ## Features
 
 - Simple desktop window with a link field and a copyable transcript area.
-- Inspect the subtitle tracks offered by a video and select one or more before retrieval. Spanish and English are selected by default when available.
+- Inspect the subtitle tracks offered by a video and select one or more before retrieval. Spanish is selected by default, then English if Spanish is unavailable.
 - A command-line version for running transcript extraction from PowerShell.
 - Deno and `yt-dlp` are downloaded into the project folder; you do not need to install them or add them to `PATH`.
 
 ## Requirements
 
-- 64-bit Windows 10 or 11.
-- PowerShell and an Internet connection for initial setup.
-- GCC for Windows (MinGW-w64) available as the `gcc` command to compile the project.
+- 64-bit Windows 10 or 11 to run the app.
+- To build from source: PowerShell, an Internet connection, and GCC for Windows (MinGW-w64) available as the `gcc` command.
 
 Rustup uses `rsproxy.cn` as its download mirror. Local tools are stored in `.tools/` and are not installed system-wide.
 
-## Set up and build
+## Download the ready-to-run app
+
+Download the [latest Windows x64 package](https://github.com/Michael4288/YoutubeLink-to-text/releases/latest/download/texto-youtube-windows-x64.zip), extract the ZIP, and keep its four files together in the same folder. Double-click `texto-youtube.exe` to open the app. You do not need to install Rust, Node.js, or Deno.
+
+To use the command-line app, open PowerShell in the extracted folder and run:
+
+```powershell
+.\texto-youtube-cli.exe "https://www.youtube.com/watch?v=VIDEO_ID" es,en
+```
+
+## Build from source
 
 Open PowerShell in the project folder and run:
 
