@@ -3,3 +3,6 @@
 
 # Artefactos de compilación de Cargo
 /target/
+
+# Generated Windows release packages
+/dist/
