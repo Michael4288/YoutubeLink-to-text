@@ -11,6 +11,8 @@ Aplicación de escritorio para Windows que obtiene y copia subtítulos disponibl
 - Herramienta de consola para ejecutar la extracción desde PowerShell.
 - Deno y `yt-dlp` se descargan en la carpeta del proyecto; no necesitas instalarlos ni añadirlos al `PATH`.
 
+La aplicación acepta enlaces HTTP o HTTPS de videos con los formatos `watch`, `shorts`, `live` y `embed` de YouTube, incluidos sus subdominios, además de enlaces `youtu.be`. Rechaza enlaces que solo apunten a listas y otros hosts antes de iniciar `yt-dlp`.
+
 ## Requisitos
 
 - Windows 10 u 11 de 64 bits para ejecutar la aplicación.

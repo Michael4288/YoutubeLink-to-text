@@ -11,6 +11,8 @@ A Windows desktop app for retrieving and copying available YouTube captions. Pas
 - A command-line version for running transcript extraction from PowerShell.
 - Deno and `yt-dlp` are downloaded into the project folder; you do not need to install them or add them to `PATH`.
 
+The app accepts HTTP or HTTPS video links using YouTube's `watch`, `shorts`, `live`, and `embed` formats, including YouTube subdomains, as well as `youtu.be` links. Playlist-only links and other hosts are rejected before `yt-dlp` starts.
+
 ## Requirements
 
 - 64-bit Windows 10 or 11 to run the app.
