@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 
 mod transcript;
+mod preferences;
 
 use std::{
     ffi::c_void,
@@ -307,6 +308,7 @@ unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, 
                     set_text(GetDlgItem(hwnd, IDC_STATUS), "Selecciona al menos una pista.");
                     return 0;
                 }
+                let preferences_warning = preferences::save_selected_languages(&languages).err();
                 EnableWindow(GetDlgItem(hwnd, IDC_FETCH), 0);
                 EnableWindow(GetDlgItem(hwnd, IDC_DISCOVER), 0);
                 EnableWindow(GetDlgItem(hwnd, IDC_COPY), 0);
@@ -320,6 +322,11 @@ unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, 
                     let executable = yt_dlp.filter(|path| path.exists());
                     let runtime = deno.filter(|path| path.exists());
                     let result = transcript::fetch(&url, &languages, executable.as_deref(), runtime.as_deref());
+                    let result = match (result, preferences_warning) {
+                        (Ok(text), Some(warning)) => Ok(format!("{text}\r\n\r\nNota: {warning}")),
+                        (Err(error), Some(warning)) => Err(format!("{error}\r\n{warning}")),
+                        (result, None) => result,
+                    };
                     let payload = Box::into_raw(Box::new(result));
                     unsafe { PostMessageW(window as Hwnd, WM_APP_RESULT, 0, payload as Lparam); }
                 });
@@ -381,13 +388,12 @@ unsafe extern "system" fn window_proc(hwnd: Hwnd, message: u32, wparam: Wparam, 
             SendMessageW(list, LB_RESETCONTENT, 0, 0);
             match *result {
                 Ok(tracks) => {
-                    let default_track = tracks.iter().position(|track| track.code == "es")
-                        .or_else(|| tracks.iter().position(|track| track.code == "en"))
-                        .unwrap_or(0);
+                    let offered = tracks.iter().map(|track| track.code.clone()).collect::<Vec<_>>();
+                    let selected = preferences::selected_track_indices(&offered, &preferences::load_selected_languages());
                     for (index, track) in tracks.into_iter().enumerate() {
                         let label = wide(&track.display_name());
                         SendMessageW(list, LB_ADDSTRING, 0, label.as_ptr() as Lparam);
-                        if index == default_track {
+                        if selected.contains(&index) {
                             SendMessageW(list, LB_SETSEL, 1, index as Lparam);
                         }
                     }
