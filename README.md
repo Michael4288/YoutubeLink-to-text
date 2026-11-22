@@ -46,6 +46,8 @@ Keep these four files together when sharing the app: `texto-youtube.exe`, `texto
 2. The list shows the available manual and automatic caption tracks. Spanish is selected by default; if unavailable, English is selected; otherwise the first available track is selected.
 3. Select one or more tracks. Hold **Ctrl** while clicking to add or remove tracks, then select **Get transcript**. Each retrieved track appears in the result with its language code.
 
+When retrieval starts, the app remembers the selected language codes in `%APPDATA%\TextoYoutube\preferences.json`. On the next search it preselects all remembered languages available for that video. If none are available, it falls back to Spanish, then English, then the first track. Delete `preferences.json` to reset this preference; it stores language codes only.
+
 The app checks which tracks are available before downloading captions. It does not download every track automatically. To reduce request limit errors, it spaces out requests and retries failed HTTP requests. If YouTube returns HTTP 429, wait a few minutes before trying again.
 
 ## Use the command line
