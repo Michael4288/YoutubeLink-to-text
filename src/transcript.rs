@@ -13,6 +13,119 @@ pub struct SubtitleTrack {
     manual: bool,
 }
 
+const VALID_YOUTUBE_EXAMPLE: &str = "https://www.youtube.com/watch?v=VIDEO_ID";
+
+fn normalize_youtube_url(input: &str) -> Result<String, String> {
+    let invalid = || {
+        format!(
+            "El enlace no es válido. Usa una URL de un video de YouTube, por ejemplo: {VALID_YOUTUBE_EXAMPLE}"
+        )
+    };
+    let input = input.trim();
+    if input.is_empty() || input.chars().any(char::is_whitespace) {
+        return Err(invalid());
+    }
+
+    let (scheme, remainder) = input.split_once("://").ok_or_else(invalid)?;
+    let scheme = scheme.to_ascii_lowercase();
+    if scheme != "http" && scheme != "https" {
+        return Err(invalid());
+    }
+
+    let authority_end = remainder
+        .find(|c| matches!(c, '/' | '?' | '#'))
+        .unwrap_or(remainder.len());
+    let authority = &remainder[..authority_end];
+    if authority.is_empty() || authority.contains('@') || authority.contains('%') {
+        return Err(invalid());
+    }
+
+    let (host, port) = match authority.rsplit_once(':') {
+        Some((host, port)) => (host, Some(port)),
+        None => (authority, None),
+    };
+    let host = host.to_ascii_lowercase();
+    let host = host.strip_suffix('.').unwrap_or(&host);
+    if let Some(port) = port {
+        let expected_port = if scheme == "https" { "443" } else { "80" };
+        if port != expected_port {
+            return Err(invalid());
+        }
+    }
+
+    let valid_domain = host.split('.').all(|label| {
+        !label.is_empty()
+            && label.len() <= 63
+            && label.as_bytes().first().is_some_and(u8::is_ascii_alphanumeric)
+            && label.as_bytes().last().is_some_and(u8::is_ascii_alphanumeric)
+            && label
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+    });
+    if !valid_domain {
+        return Err(invalid());
+    }
+    let is_short_domain = host == "youtu.be";
+    let is_youtube_domain = host == "youtube.com" || host.ends_with(".youtube.com");
+    if !is_short_domain && !is_youtube_domain {
+        return Err(invalid());
+    }
+
+    let tail = &remainder[authority_end..];
+    let tail = tail.split('#').next().unwrap_or_default();
+    let (path, query) = match tail.split_once('?') {
+        Some((path, query)) => (path, Some(query)),
+        None => (tail, None),
+    };
+    let path = path.strip_suffix('/').unwrap_or(path);
+    let video_id = if is_short_domain {
+        let Some(id) = path.strip_prefix('/') else {
+            return Err(invalid());
+        };
+        if id.is_empty() || id.contains('/') {
+            return Err(invalid());
+        }
+        id
+    } else if path == "/watch" {
+        let mut found = None;
+        for parameter in query.unwrap_or_default().split('&') {
+            let (key, value) = parameter.split_once('=').unwrap_or((parameter, ""));
+            if key == "v" {
+                if found.is_some() {
+                    return Err(invalid());
+                }
+                found = Some(value);
+            }
+        }
+        found.filter(|id| !id.is_empty()).ok_or_else(invalid)?
+    } else {
+        let Some(segments) = path.strip_prefix('/') else {
+            return Err(invalid());
+        };
+        let mut segments = segments.split('/');
+        let route = segments.next().unwrap_or_default();
+        let id = segments.next().unwrap_or_default();
+        if !matches!(route, "shorts" | "live" | "embed")
+            || id.is_empty()
+            || segments.next().is_some()
+        {
+            return Err(invalid());
+        }
+        id
+    };
+
+    if video_id == "."
+        || video_id == ".."
+        || !video_id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | '~'))
+    {
+        return Err(invalid());
+    }
+
+    Ok(format!("https://www.youtube.com/watch?v={video_id}"))
+}
+
 impl SubtitleTrack {
     pub fn display_name(&self) -> String {
         format!("{} — {} ({})", self.code, self.name, self.source)
@@ -20,9 +133,7 @@ impl SubtitleTrack {
 }
 
 pub fn discover(url: &str, yt_dlp: Option<&Path>, deno: Option<&Path>) -> Result<Vec<SubtitleTrack>, String> {
-    if !(url.contains("youtube.com/") || url.contains("youtu.be/")) {
-        return Err("El enlace no parece ser de YouTube.".into());
-    }
+    let normalized_url = normalize_youtube_url(url)?;
     let executable = yt_dlp.map(Path::to_path_buf).unwrap_or_else(|| PathBuf::from("yt-dlp"));
     let Some(deno) = deno else {
         return Err("No encuentro Deno junto a la aplicación. Vuelve a ejecutar setup.ps1 y build.ps1.".into());
@@ -37,8 +148,8 @@ pub fn discover(url: &str, yt_dlp: Option<&Path>, deno: Option<&Path>) -> Result
             "http:exp=2:30",
             "--skip-download",
             "--list-subs",
-            url,
         ])
+        .arg(&normalized_url)
         .output()
         .map_err(|e| format!("No pude iniciar yt-dlp: {e}"))?;
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -122,9 +233,7 @@ fn valid_language_code(code: &str) -> bool {
 }
 
 pub fn fetch(url: &str, languages: &str, yt_dlp: Option<&Path>, deno: Option<&Path>) -> Result<String, String> {
-    if !(url.contains("youtube.com/") || url.contains("youtu.be/")) {
-        return Err("El enlace no parece ser de YouTube.".into());
-    }
+    let normalized_url = normalize_youtube_url(url)?;
 
     let stamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -164,7 +273,7 @@ pub fn fetch(url: &str, languages: &str, yt_dlp: Option<&Path>, deno: Option<&Pa
             "--output",
         ])
         .arg(&template)
-        .arg(url)
+        .arg(&normalized_url)
         .output();
 
     let output = match result {
@@ -265,4 +374,63 @@ fn strip_tags(s: &str) -> String {
     out.replace("&amp;", "&")
         .replace("&lt;", "<")
         .replace("&gt;", ">")
+}
+
+#[cfg(test)]
+mod url_validation_tests {
+    use super::{normalize_youtube_url, VALID_YOUTUBE_EXAMPLE};
+
+    #[test]
+    fn accepts_supported_video_url_forms_and_normalizes_them() {
+        let cases = [
+            (
+                "  http://youtube.com/watch?v=abc_123&feature=share  ",
+                "abc_123",
+            ),
+            (
+                "https://music.youtube.com/watch?feature=share&v=short-id#t=2",
+                "short-id",
+            ),
+            ("https://youtu.be/another.id/", "another.id"),
+            ("https://www.youtube.com/shorts/a", "a"),
+            ("https://www.youtube.com/live/video~id", "video~id"),
+            ("https://www.youtube.com/embed/Video_ID", "Video_ID"),
+            ("https://youtube.com:443/watch?v=abc", "abc"),
+        ];
+
+        for (input, video_id) in cases {
+            assert_eq!(
+                normalize_youtube_url(input).unwrap(),
+                format!("https://www.youtube.com/watch?v={video_id}"),
+                "input: {input}"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_non_video_or_misleading_urls() {
+        let cases = [
+            "https://attacker.example/watch?v=abc&next=youtube.com/",
+            "https://youtube.com.attacker.example/watch?v=abc",
+            "https://.youtube.com/watch?v=abc",
+            "https://evil..youtube.com/watch?v=abc",
+            "https://youtube.com@attacker.example/watch?v=abc",
+            "https://youtube.com/playlist?list=abc",
+            "https://youtube.com/watch",
+            "https://youtube.com/watch?v=",
+            "https://youtube.com/watch?v=abc&v=def",
+            "https://youtube.com/shorts/abc/extra",
+            "ftp://youtube.com/watch?v=abc",
+            "https://youtube.com:8443/watch?v=abc",
+            "https://youtube.com/watch?v=abc def",
+            "https://youtube.com/watch?v=abc\nhttps://youtu.be/def",
+            "https://youtu.be/../secret",
+        ];
+
+        for input in cases {
+            let error = normalize_youtube_url(input).unwrap_err();
+            assert!(error.contains(VALID_YOUTUBE_EXAMPLE));
+            assert!(error.contains("no es válido"));
+        }
+    }
 }
