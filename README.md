@@ -59,6 +59,8 @@ Keep these four files together when sharing the app: `texto-youtube.exe`, `texto
 
 The app checks which tracks are available before downloading captions. It does not download every track automatically. To reduce request limit errors, it spaces out requests and retries failed HTTP requests. If YouTube returns HTTP 429, wait a few minutes before trying again.
 
+WebVTT cue tags are removed and common text entities are decoded, including quotes, non-breaking spaces, and valid decimal or hexadecimal character references. Unknown and malformed entities remain visible.
+
 ## Use the command line
 
 The language argument is optional. If omitted, the app requests Spanish and English subtitles:

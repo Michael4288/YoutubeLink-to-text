@@ -56,8 +56,14 @@ fn normalize_youtube_url(input: &str) -> Result<String, String> {
     let valid_domain = host.split('.').all(|label| {
         !label.is_empty()
             && label.len() <= 63
-            && label.as_bytes().first().is_some_and(u8::is_ascii_alphanumeric)
-            && label.as_bytes().last().is_some_and(u8::is_ascii_alphanumeric)
+            && label
+                .as_bytes()
+                .first()
+                .is_some_and(u8::is_ascii_alphanumeric)
+            && label
+                .as_bytes()
+                .last()
+                .is_some_and(u8::is_ascii_alphanumeric)
             && label
                 .bytes()
                 .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
@@ -132,11 +138,20 @@ impl SubtitleTrack {
     }
 }
 
-pub fn discover(url: &str, yt_dlp: Option<&Path>, deno: Option<&Path>) -> Result<Vec<SubtitleTrack>, String> {
+pub fn discover(
+    url: &str,
+    yt_dlp: Option<&Path>,
+    deno: Option<&Path>,
+) -> Result<Vec<SubtitleTrack>, String> {
     let normalized_url = normalize_youtube_url(url)?;
-    let executable = yt_dlp.map(Path::to_path_buf).unwrap_or_else(|| PathBuf::from("yt-dlp"));
+    let executable = yt_dlp
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("yt-dlp"));
     let Some(deno) = deno else {
-        return Err("No encuentro Deno junto a la aplicación. Vuelve a ejecutar setup.ps1 y build.ps1.".into());
+        return Err(
+            "No encuentro Deno junto a la aplicación. Vuelve a ejecutar setup.ps1 y build.ps1."
+                .into(),
+        );
     };
     let output = Command::new(executable)
         .arg("--js-runtimes")
@@ -185,14 +200,23 @@ fn parse_tracks(output: &str) -> Vec<SubtitleTrack> {
         if section.is_empty() || lower.contains("language") && lower.contains("format") {
             continue;
         }
-        let Some(code) = line.split_whitespace().next() else { continue };
+        let Some(code) = line.split_whitespace().next() else {
+            continue;
+        };
         if !valid_language_code(code) {
             continue;
         }
-        let Some(position) = line.find(code) else { continue };
+        let Some(position) = line.find(code) else {
+            continue;
+        };
         let remainder = &line[position + code.len()..];
         let name = if section == "automatic" {
-            remainder.split(',').next().unwrap_or_default().trim().to_owned()
+            remainder
+                .split(',')
+                .next()
+                .unwrap_or_default()
+                .trim()
+                .to_owned()
         } else {
             remainder
                 .split_whitespace()
@@ -200,7 +224,11 @@ fn parse_tracks(output: &str) -> Vec<SubtitleTrack> {
                 .collect::<Vec<_>>()
                 .join(" ")
         };
-        let name = if name.is_empty() { code.to_owned() } else { name };
+        let name = if name.is_empty() {
+            code.to_owned()
+        } else {
+            name
+        };
         let manual = section == "manual";
         if let Some(existing) = tracks.iter_mut().find(|track| track.code == code) {
             if manual && !existing.manual {
@@ -220,8 +248,14 @@ fn parse_tracks(output: &str) -> Vec<SubtitleTrack> {
         });
     }
     tracks.sort_by(|a, b| {
-        let rank = |code: &str| match code { "es" => 0, "en" => 1, _ => 2 };
-        rank(&a.code).cmp(&rank(&b.code)).then_with(|| a.name.cmp(&b.name))
+        let rank = |code: &str| match code {
+            "es" => 0,
+            "en" => 1,
+            _ => 2,
+        };
+        rank(&a.code)
+            .cmp(&rank(&b.code))
+            .then_with(|| a.name.cmp(&b.name))
     });
     tracks
 }
@@ -229,10 +263,17 @@ fn parse_tracks(output: &str) -> Vec<SubtitleTrack> {
 fn valid_language_code(code: &str) -> bool {
     !code.is_empty()
         && code.chars().any(|c| c.is_ascii_alphabetic())
-        && code.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        && code
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
-pub fn fetch(url: &str, languages: &str, yt_dlp: Option<&Path>, deno: Option<&Path>) -> Result<String, String> {
+pub fn fetch(
+    url: &str,
+    languages: &str,
+    yt_dlp: Option<&Path>,
+    deno: Option<&Path>,
+) -> Result<String, String> {
     let normalized_url = normalize_youtube_url(url)?;
 
     let stamp = SystemTime::now()
@@ -242,15 +283,25 @@ pub fn fetch(url: &str, languages: &str, yt_dlp: Option<&Path>, deno: Option<&Pa
     let dir = env::temp_dir().join(format!("texto-youtube-{stamp}"));
     fs::create_dir_all(&dir).map_err(|e| format!("No pude crear carpeta temporal: {e}"))?;
     let template = dir.join("sub.%(ext)s");
-    let executable = yt_dlp.map(Path::to_path_buf).unwrap_or_else(|| PathBuf::from("yt-dlp"));
-    let languages = languages.split(',').map(str::trim).filter(|s| !s.is_empty()).collect::<Vec<_>>().join(",");
+    let executable = yt_dlp
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("yt-dlp"));
+    let languages = languages
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join(",");
     if languages.is_empty() {
         let _ = fs::remove_dir_all(&dir);
         return Err("Escribe al menos un idioma, por ejemplo: es,en".into());
     }
     let Some(deno) = deno else {
         let _ = fs::remove_dir_all(&dir);
-        return Err("No encuentro Deno junto a la aplicación. Vuelve a ejecutar setup.ps1 y build.ps1.".into());
+        return Err(
+            "No encuentro Deno junto a la aplicación. Vuelve a ejecutar setup.ps1 y build.ps1."
+                .into(),
+        );
     };
 
     let result = Command::new(executable)
@@ -289,7 +340,13 @@ pub fn fetch(url: &str, languages: &str, yt_dlp: Option<&Path>, deno: Option<&Pa
         if stderr.contains("429") || stderr.contains("Too Many Requests") {
             return Err("YouTube limitó temporalmente las solicitudes (HTTP 429). Espera unos minutos y vuelve a intentar.".into());
         }
-        let message = stderr.lines().filter(|line| !line.contains("WARNING: ffmpeg not found")).collect::<Vec<_>>().join("\r\n").trim().to_owned();
+        let message = stderr
+            .lines()
+            .filter(|line| !line.contains("WARNING: ffmpeg not found"))
+            .collect::<Vec<_>>()
+            .join("\r\n")
+            .trim()
+            .to_owned();
         return Err(format!("yt-dlp no pudo obtener los subtítulos. {message}"));
     }
 
@@ -312,7 +369,9 @@ pub fn fetch(url: &str, languages: &str, yt_dlp: Option<&Path>, deno: Option<&Pa
         };
         let text = clean_vtt(&vtt);
         if !text.is_empty() {
-            let language = file.file_stem().and_then(|stem| stem.to_str())
+            let language = file
+                .file_stem()
+                .and_then(|stem| stem.to_str())
                 .and_then(|stem| stem.strip_prefix("sub."))
                 .unwrap_or("subtítulo");
             transcripts.push(format!("===== {language} =====\r\n{text}"));
@@ -351,7 +410,7 @@ fn clean_vtt(vtt: &str) -> String {
         {
             continue;
         }
-        let clean = strip_tags(line);
+        let clean = decode_vtt_entities(&strip_tags(line));
         if !clean.is_empty() && clean != previous {
             lines.push(clean.clone());
             previous = clean;
@@ -371,9 +430,86 @@ fn strip_tags(s: &str) -> String {
             _ => {}
         }
     }
-    out.replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
+    out
+}
+
+fn decode_vtt_entities(text: &str) -> String {
+    let mut output = String::new();
+    let mut remaining = text;
+    while let Some(start) = remaining.find('&') {
+        output.push_str(&remaining[..start]);
+        remaining = &remaining[start..];
+        let Some(end) = remaining.find(';') else {
+            output.push_str(remaining);
+            return output;
+        };
+        let entity = &remaining[1..end];
+        if let Some(decoded) = decode_vtt_entity(entity) {
+            output.push(decoded);
+        } else {
+            output.push_str(&remaining[..=end]);
+        }
+        remaining = &remaining[end + 1..];
+    }
+    output.push_str(remaining);
+    output
+}
+
+fn decode_vtt_entity(entity: &str) -> Option<char> {
+    match entity {
+        "amp" => Some('&'),
+        "lt" => Some('<'),
+        "gt" => Some('>'),
+        "quot" => Some('"'),
+        "apos" | "#39" => Some('\''),
+        "nbsp" => Some('\u{00a0}'),
+        _ => {
+            let (radix, digits) = if let Some(hex) = entity
+                .strip_prefix("#x")
+                .or_else(|| entity.strip_prefix("#X"))
+            {
+                (16, hex)
+            } else if let Some(decimal) = entity.strip_prefix('#') {
+                (10, decimal)
+            } else {
+                return None;
+            };
+            let codepoint = u32::from_str_radix(digits, radix).ok()?;
+            if codepoint == 0 {
+                return None;
+            }
+            char::from_u32(codepoint)
+        }
+    }
+}
+
+#[cfg(test)]
+mod vtt_entity_tests {
+    use super::{clean_vtt, decode_vtt_entities};
+
+    #[test]
+    fn decodes_named_decimal_and_hex_entities_in_mixed_unicode_text() {
+        assert_eq!(
+            decode_vtt_entities(
+                "&amp; &lt; &gt; &quot; &apos; &#39; &nbsp; &#233; &#x1F600; &#X41; café 漢字"
+            ),
+            "& < > \" ' ' \u{00a0} é 😀 A café 漢字"
+        );
+    }
+
+    #[test]
+    fn leaves_unknown_invalid_and_unterminated_entities_unchanged() {
+        let value = "&unknown; &#; &#xZZ; &#xD800; &#0; &#1114112; &missing";
+        assert_eq!(decode_vtt_entities(value), value);
+    }
+
+    #[test]
+    fn decodes_once_after_tag_stripping_and_before_adjacent_deduplication() {
+        let vtt = "WEBVTT\n\n00:00:00.000 --> 00:00:01.000\n<b>&amp;lt;</b>\n\n00:00:01.000 --> 00:00:02.000\n&lt;\n";
+        assert_eq!(clean_vtt(vtt), "&lt;\r\n<");
+        let decoded = "WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nhi&amp;\n\n00:00:01.000 --> 00:00:02.000\nhi&\n";
+        assert_eq!(clean_vtt(decoded), "hi&");
+    }
 }
 
 #[cfg(test)]
