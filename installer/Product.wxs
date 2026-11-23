@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Texto de YouTube"
+           Manufacturer="Michael4288"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="D2E074F5-F5B8-4B18-94DA-65C9B2D8A0F0"
+           Scope="perUser"
+           InstallerVersion="500"
+           Compressed="yes">
+    <MajorUpgrade DowngradeErrorMessage="Ya hay una versión más reciente instalada." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="TextoYoutube">
+          <Component Id="GuiExecutable" Guid="72876808-85FB-4B7A-B14D-D9129A90432A">
+            <File Source="$(var.BinaryDirectory)\texto-youtube.exe" />
+            <RegistryValue Root="HKCU" Key="Software\Michael4288\TextoYoutube" Name="GuiExecutable" Type="integer" Value="1" KeyPath="yes" />
+            <RemoveFolder Id="RemoveInstallFolder" On="uninstall" />
+            <RemoveFolder Id="RemoveProgramsFolder" Directory="ProgramsFolder" On="uninstall" />
+          </Component>
+          <Component Id="CliExecutable" Guid="A926CDB3-33D2-4AC9-824B-68806424C49C">
+            <File Source="$(var.BinaryDirectory)\texto-youtube-cli.exe" />
+            <RegistryValue Root="HKCU" Key="Software\Michael4288\TextoYoutube" Name="CliExecutable" Type="integer" Value="1" KeyPath="yes" />
+          </Component>
+          <Component Id="YtDlpExecutable" Guid="E8A5937D-FAEE-43C6-86A9-04D5C5CA0647">
+            <File Source="$(var.BinaryDirectory)\yt-dlp.exe" />
+            <RegistryValue Root="HKCU" Key="Software\Michael4288\TextoYoutube" Name="YtDlpExecutable" Type="integer" Value="1" KeyPath="yes" />
+          </Component>
+          <Component Id="DenoExecutable" Guid="927C3D53-DA50-4C4A-B761-EEC6A52C9C0C">
+            <File Source="$(var.BinaryDirectory)\deno.exe" />
+            <RegistryValue Root="HKCU" Key="Software\Michael4288\TextoYoutube" Name="DenoExecutable" Type="integer" Value="1" KeyPath="yes" />
+          </Component>
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Texto de YouTube">
+        <Component Id="StartMenuShortcut" Guid="*">
+          <Shortcut Id="StartMenuShortcut" Name="Texto de YouTube"
+                    Target="[INSTALLFOLDER]texto-youtube.exe"
+                    WorkingDirectory="INSTALLFOLDER" />
+          <RemoveFolder Id="RemoveStartMenuFolder" On="uninstall" />
+          <RegistryValue Root="HKCU" Key="Software\Michael4288\TextoYoutube"
+                         Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="Application" Title="Texto de YouTube" Level="1">
+      <ComponentRef Id="GuiExecutable" />
+      <ComponentRef Id="CliExecutable" />
+      <ComponentRef Id="YtDlpExecutable" />
+      <ComponentRef Id="DenoExecutable" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+  </Package>
+</Wix>
