@@ -59,6 +59,8 @@ Al compartir la aplicación, mantén juntos estos cuatro archivos: `texto-youtub
 
 La aplicación consulta qué pistas existen antes de descargar subtítulos. No descarga todas las pistas automáticamente. Para reducir errores por límite de solicitudes, espera entre solicitudes y reintenta las solicitudes HTTP fallidas. Si YouTube responde HTTP 429, espera unos minutos antes de volver a intentarlo.
 
+Se quitan las etiquetas de WebVTT y se decodifican entidades comunes, como comillas, espacios no separables y referencias numéricas decimales o hexadecimales válidas. Las entidades desconocidas o malformadas se conservan visibles.
+
 ## Usar la consola
 
 El argumento de idiomas es opcional. Si lo omites, se solicitan subtítulos en español e inglés:
