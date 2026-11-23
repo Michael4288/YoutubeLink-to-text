@@ -24,6 +24,8 @@ Rustup usa `rsproxy.cn` como espejo de descarga. Las herramientas locales se gua
 
 Descarga el [paquete más reciente para Windows x64](https://github.com/Michael4288/YoutubeLink-to-text/releases/latest/download/texto-youtube-windows-x64.zip), extrae el ZIP y mantén sus cuatro archivos juntos en la misma carpeta. Haz doble clic en `texto-youtube.exe` para abrir la aplicación. No necesitas instalar Rust, Node.js ni Deno.
 
+El mismo Release incluye un MSI por usuario con versión en el nombre (`texto-youtube-windows-x64-X.Y.Z.msi`). Haz doble clic para instalarlo en `%LOCALAPPDATA%\Programs\TextoYoutube`, sin privilegios de administrador. Un MSI más reciente actualiza la instalación existente. Desinstálalo desde **Configuración > Aplicaciones > Aplicaciones instaladas**. Para reparar la instalación, ejecuta `msiexec /fa "ruta\a\texto-youtube-windows-x64-X.Y.Z.msi"`. La desinstalación elimina la aplicación y el acceso directo, pero conserva las preferencias de `%APPDATA%\TextoYoutube` y los archivos externos a la carpeta de instalación. Elige el ZIP si prefieres la versión portátil sin instalador.
+
 Para usar la aplicación de consola, abre PowerShell en la carpeta extraída y ejecuta:
 
 ```powershell

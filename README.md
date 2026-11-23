@@ -24,6 +24,8 @@ Rustup uses `rsproxy.cn` as its download mirror. Local tools are stored in `.too
 
 Download the [latest Windows x64 package](https://github.com/Michael4288/YoutubeLink-to-text/releases/latest/download/texto-youtube-windows-x64.zip), extract the ZIP, and keep its four files together in the same folder. Double-click `texto-youtube.exe` to open the app. You do not need to install Rust, Node.js, or Deno.
 
+The same release also includes a versioned per-user MSI (`texto-youtube-windows-x64-X.Y.Z.msi`). Double-click it to install under `%LOCALAPPDATA%\Programs\TextoYoutube`; it does not require administrator privileges. A newer MSI upgrades the existing installation. Uninstall it from **Settings > Apps > Installed apps**. To repair an installation, run `msiexec /fa "path\to\texto-youtube-windows-x64-X.Y.Z.msi"`. Uninstall removes the app and Start menu shortcut while preserving `%APPDATA%\TextoYoutube` preferences and files outside the installation folder. Choose the ZIP for a portable app without an installer.
+
 To use the command-line app, open PowerShell in the extracted folder and run:
 
 ```powershell
