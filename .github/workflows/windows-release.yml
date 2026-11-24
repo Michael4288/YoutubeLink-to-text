@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   package:
-    name: Build and attach Windows x64 ZIP
+    name: Build and attach Windows x64 packages
     runs-on: windows-latest
     steps:
       - name: Check out the released source
@@ -56,10 +56,17 @@ jobs:
 
       - name: Package and validate required files
         shell: pwsh
-        run: .\package-windows.ps1 -BinaryDirectory '.\target\x86_64-pc-windows-gnu\release'
+        run: |
+          dotnet tool restore
+          .\package-windows.ps1 -BinaryDirectory '.\target\x86_64-pc-windows-gnu\release'
+          $version = [regex]::Match((Get-Content Cargo.toml -Raw), '(?ms)^\[package\].*?^version\s*=\s*"(\d+\.\d+\.\d+)"').Groups[1].Value
+          if (-not $version) { throw 'No se encontró la versión del paquete en Cargo.toml.' }
+          .\installer\test-install.ps1 -PreviousMsi '.\dist\upgrade-test.msi' -CurrentMsi ".\dist\texto-youtube-windows-x64-$version.msi"
 
       - name: Attach package to the published release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload $env:GITHUB_REF_NAME '.\dist\texto-youtube-windows-x64.zip' --repo $env:GITHUB_REPOSITORY --clobber
+        run: |
+          $version = [regex]::Match((Get-Content Cargo.toml -Raw), '(?ms)^\[package\].*?^version\s*=\s*"(\d+\.\d+\.\d+)"').Groups[1].Value
+          gh release upload $env:GITHUB_REF_NAME ".\dist\texto-youtube-windows-x64-$version.zip" ".\dist\texto-youtube-windows-x64-$version.msi" '.\dist\texto-youtube-windows-x64.zip' --repo $env:GITHUB_REPOSITORY --clobber
