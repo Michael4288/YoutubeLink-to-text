@@ -57,6 +57,8 @@ Al compartir la aplicación, mantén juntos estos cuatro archivos: `texto-youtub
 2. La lista muestra las pistas manuales y automáticas disponibles. Se selecciona español por defecto; si no existe, inglés; y si tampoco está, la primera pista disponible.
 3. Elige una o más pistas. Mantén **Ctrl** mientras haces clic para agregar o quitar pistas y luego pulsa **Obtener texto**. Cada pista obtenida aparece en el resultado con su código de idioma.
 
+Al iniciar la descarga, la aplicación recuerda los códigos elegidos en `%APPDATA%\TextoYoutube\preferences.json`. En la siguiente búsqueda selecciona todos los idiomas guardados que ofrezca el video. Si ninguno está disponible, usa español, luego inglés y finalmente la primera pista. Borra `preferences.json` para restablecer esta preferencia; el archivo solo guarda códigos de idioma.
+
 La aplicación consulta qué pistas existen antes de descargar subtítulos. No descarga todas las pistas automáticamente. Para reducir errores por límite de solicitudes, espera entre solicitudes y reintenta las solicitudes HTTP fallidas. Si YouTube responde HTTP 429, espera unos minutos antes de volver a intentarlo.
 
 ## Usar la consola
